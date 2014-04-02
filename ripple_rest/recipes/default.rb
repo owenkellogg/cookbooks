@@ -1,3 +1,4 @@
+include_recipe "postgresql::client"
 
 git "/opt/ripple-rest" do
   repository "https://github.com/ripple/ripple-rest"
