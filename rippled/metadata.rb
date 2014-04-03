@@ -1,0 +1,5 @@
+
+name "rippled"
+
+depends "nodejs"
+
