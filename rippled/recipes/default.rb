@@ -11,3 +11,14 @@ package "rippled" do
   action :install  
 end
 
+## Hardening
+
+template "/etc/login.defs" do
+  source "login.defs.erb"
+  mode 0644
+  owner "root"
+  group "root"
+  action :create
+end
+
+
