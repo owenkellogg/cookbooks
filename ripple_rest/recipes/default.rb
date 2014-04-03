@@ -1,4 +1,6 @@
 include_recipe "postgresql::client"
+include_recipe "nodejs"
+include_recipe "nginx"
 
 git "/opt/ripple-rest" do
   repository "https://github.com/ripple/ripple-rest"
@@ -12,5 +14,7 @@ template "/etc/init/ripple_rest.conf" do
   source "ripple_rest.conf.erb"
   action :create
 end
+
+## still need to configure nginx
 
 execute "sudo start ripple_rest"
