@@ -1,0 +1,5 @@
+# minute hour day-of-month month day-of-week user command
+
+# Run a script every couple of minutes to gather debugging information for
+# rippled.
+0-55/5 * * * * root /usr/local/sbin/debugging.sh >> /var/log/rippled/instrumentation
