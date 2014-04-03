@@ -1,0 +1,18 @@
+{
+  "config_version": "0.0.1",
+  "PORT": 5990,
+  "NODE_ENV": "development",
+  "HOST": "localhost",
+  "DATABASE_URL": "postgres://<%= node["postgres"]["user"] %>:<%= node["postgres"]["password"]@<%= node["postgres"]["host"] %>:<%= node["postgres"]["port"] %>/<%= node["postgres][:database] %>",
+  "ssl": {
+    "key_path": "/etc/ssl/private/server.key",
+    "cert_path": "/etc/ssl/certs/server.crt"
+  },
+  "rippled_servers": [
+    {
+      "host": "<%= node[:rippled][:host] %>",
+      "port": "<%= node[:rippled][:port] %>",
+      "secure": true
+    }
+  ]
+}
