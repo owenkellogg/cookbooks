@@ -22,12 +22,8 @@
 PATH=/sbin:/usr/sbin:/bin:/usr/bin
 NAME=ripple-gateway
 DAEMON_DIR="/opt/ripple-gateway"
-DAEMON="processes/webapp.js"
 DESC="node.js server which implements the Ripple Gateway API."
 NODEUSER="gateway"
-ERROR="/var/log/$NAME.err"
-LOG="/var/log/$NAME.log"
-PIDFILE="/var/run/$NAME.pid"
 
 # Needed to make PM2 happy.
 export HOME=/tmp
@@ -40,9 +36,6 @@ export HOME=/tmp
 # The app defaults to port 3000/tcp but supports being told to listen on
 # another port with an environment variable.
 #export PORT=3000
-
-# The database URL has to be set up for the server to start successfully
-export DATABASE_URL="postgres://appliance:3116incoming**DETONATE(())@localhost:5432/gateway_appliance"
 
 # ABEND if pm2 is not installed.
 if [ ! -x /usr/bin/pm2 ]; then
@@ -64,20 +57,26 @@ case "$1" in
     start)
         echo "Starting Ripple gateway application server..."
         cd $DAEMON_DIR
-        /usr/bin/pm2 start --verbose -o $LOG -e $ERROR -p $PIDFILE \
-            -u $NODEUSER $DAEMON
+        for i in processes/*.js; do
+            /usr/bin/pm2 start --verbose -o /var/log/$i.log \
+                -e /var/log/$i.err -p /var/run/$i.pid -u $NODEUSER $i
+        done
         ;;
 
     stop)
         echo "Stopping Ripple gateway application server..."
         cd $DAEMON_DIR
-        /usr/bin/pm2 stop $DAEMON
+        for i in processes/*.js; do
+            /usr/bin/pm2 stop $i
+        done
         ;;
 
     restart)
         echo "Restarting Ripple gateway application server..."
         cd $DAEMON_DIR
-        /usr/bin/pm2 restart $DAEMON
+        for i in processes/*.js; do
+            /usr/bin/pm2 restart $i
+        done
         ;;
 
     status)
@@ -101,7 +100,9 @@ case "$1" in
         echo "Stopping $NAME."
         umask 0022
         cd $DAEMON_DIR
-        /usr/bin/pm2 stop $DAEMON
+        for i in processes/*.js; do
+            /usr/bin/pm2 stop $i
+        done
 
         echo "Updating code repository."
         git pull
@@ -115,8 +116,10 @@ case "$1" in
         cd ../..
 
         echo "Starting $NAME."
-        /usr/bin/pm2 start --verbose -o $LOG -e $ERROR -p $PIDFILE \
-            -u $NODEUSER $DAEMON
+        for i in processes/*.js; do
+            /usr/bin/pm2 start --verbose -o /var/log/$i.log \
+                -e /var/log/$i.err -p /var/run/$i.pid -u $NODEUSER $i
+        done
 
         # Re-enable trapped signals.
         trap 2
