@@ -1,0 +1,47 @@
+# /etc/profile: system-wide .profile file for the Bourne shell (sh(1))
+# and Bourne compatible shells (bash(1), ksh(1), ash(1), ...).
+
+if [ "$PS1" ]; then
+  if [ "$BASH" ] && [ "$BASH" != "/bin/sh" ]; then
+    # The file bash.bashrc already sets the default PS1.
+    # PS1='\h:\w\$ '
+    if [ -f /etc/bash.bashrc ]; then
+      . /etc/bash.bashrc
+    fi
+  else
+    if [ "`id -u`" -eq 0 ]; then
+      PS1='# '
+    else
+      PS1='$ '
+    fi
+  fi
+fi
+
+# The default umask is now handled by pam_umask.
+# See pam_umask(8) and /etc/login.defs.
+
+if [ -d /etc/profile.d ]; then
+  for i in /etc/profile.d/*.sh; do
+    if [ -r $i ]; then
+      . $i
+    fi
+  done
+  unset i
+fi
+
+# If the API keys are still in va-admin's home directory, warn the user to do
+# something about it.
+if [ -f /home/va-admin/API_server_keys.txt ]; then
+    echo "WARNING: API_server_keys.txt still exists in the virtual machine."
+    echo "This file contains secrets necessary for interacting with the API server."
+    echo "Please download this file to removable media and delete it from the"
+    echo "virtual machine."
+    fi
+
+# Print the current IP address of the VM.
+echo
+echo -n "Current IP address of this virtual appliance: "
+ifconfig eth0 | grep 'inet addr:' | awk '{print $2}' | awk -F: '{print $2}'
+echo
+
+

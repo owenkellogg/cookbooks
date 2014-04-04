@@ -8,10 +8,12 @@ git "/opt/ripple-rest" do
   action :sync
 end
 
+## set database url for migrations
+
 execute "cd /opt/ripple-rest && sudo npm install"
 
-template "/etc/init/ripple_rest.conf" do
-  source "ripple_rest.conf.erb"
+template "/etc/init.d/ripple-rest" do
+  source "etc/init.d/ripple-rest.erb"
   action :create
 end
 
