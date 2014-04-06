@@ -1,14 +1,18 @@
 
-include_recipe "harden"
+#include_recipe "harden"
 include_recipe "nodejs"
 
-apt_repository "rippled" do
-  uri "http://ppa.launchpad.net/jaesharp/ripple/ubuntu"
-  keyserver "keyserver.ubuntu.com"
-  key "573EB78E"
-end
+package "pkg-config"
+package "git"
+package "scons"
+package "ctags"
+package "libboost1.48-all-dev"
+package "protobuf-compiler"
+package "libprotobuf-dev"
 
-package "rippled" do
-  action :install  
+git "/opt/rippled" do
+  repository "https://github.com/ripple/rippled.git"
+  revision  "master"
+  action :sync
 end
 
