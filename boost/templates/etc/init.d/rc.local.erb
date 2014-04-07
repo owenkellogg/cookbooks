@@ -1,0 +1,47 @@
+#!/bin/sh -e
+#
+# rc.local
+#
+# This script is executed at the end of each multiuser runlevel.
+# Make sure that the script will "exit 0" on success or any other
+# value on error.
+#
+# In order to enable or disable this script just change the execution
+# bits.
+
+# To facilitate the setup of a new VM, sudo is reconfigured so that the
+# va-admin account doesn't need a password to get root privileges.  This is
+# very dangerous, so let's make that not happen when it's not needed anymore
+# (i.e., after the VM is built and turned into a template).
+rm -f /etc/sudoers.d/setup
+
+# Extract the current IP address of the primary network interface.
+ADDR=`ifconfig eth0 | grep 'inet addr:' | awk '{print $2}' | \
+    awk -F: '{print $2}'`
+
+# Back up the web client's config file if it exists.
+if [ -f /var/www/config.js.bak ]; then
+    rm -f /var/www/config.js.bak
+    fi
+if [ -f /var/www/config.js ]; then
+    mv /var/www/config.js /var/www/config.js.bak
+    fi
+
+# Use the IP address to rewrite the web client's config.js file so that it can
+# point at the correct address.  WebSockets is a protocol by which arbitrary
+# clients can contact arbitrary servers, after all.
+sed "s/s-east.ripple.com/$ADDR/" /var/www/config-example.js > /var/www/config.js
+
+# Test if the gateway API server has been initialized by seeing if a keyfile
+# exists in /var/lib/rippled.  If it does, initialize the server, save the
+# output, and delete the keyfile.
+if [ -f /var/lib/rippled/unconfigured ]; then
+    echo "Initializing API application server..."
+    . /var/lib/rippled/unconfigured
+    /opt/ripple-gateway/bin/gateway init 1>/home/va-admin/API_server_keys.txt
+    chown va-admin:va-admin /home/va-admin/API_server_keys.txt
+    chmod 0600 /home/va-admin/API_server_keys.txt
+    rm -f /var/lib/rippled/unconfigured
+    fi
+
+exit 0

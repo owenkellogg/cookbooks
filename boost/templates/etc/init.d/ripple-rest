@@ -1,0 +1,134 @@
+#! /bin/sh
+
+# If you wish the Daemon to be lauched at boot / stopped at shutdown:
+#	INSTALL : update-rc.d ripple-rest defaults
+#	UNINSTALL : update-rc.d -f ripple-rest remove
+
+### BEGIN INIT INFO
+# Provides:          ripple-rest
+# Required-Start:    $remote_fs $named $syslog rippled
+# Required-Stop:     $remote_fs $named $syslog rippled
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: RESTful API server for rippled.
+# Description:       RESTful API server for rippled.
+### END INIT INFO
+
+# Author: Bryce A. Lynch (bryce at ripple dot com)
+# PGP: 0xA4364248 / A177 A590 2869 32AC E2E1  946A FAD8 98D6 A436 4248
+
+PATH=/sbin:/usr/sbin:/bin:/usr/bin
+NAME=ripple-rest
+DAEMON=server.js
+DAEMON_DIR="/opt/ripple-rest"
+DESC="node.js server which implements a RESTful interface to rippled."
+NODEUSER="restful"
+PIDFILE="/var/run/$NAME.pid"
+ERROR="/var/log/$NAME.err"
+LOG="/var/log/$NAME.log"
+
+# Needed to make PM2 happy.
+export HOME=/tmp
+
+# The app requires that the IP address it listens on be set with an environment
+# variable and not in a configuration file or on the command line.  The app
+# defaults to 0.0.0.0.
+#export ADDRESS=127.0.0.1
+
+# The app defaults to port 5990/tcp but supports being told to listen on
+# another port with an environment variable.
+#export PORT=5990
+
+# The database URL has to be set up for the server to start successfully
+export DATABASE_URL="postgres://appliance:3116incoming**DETONATE(())@localhost:5432/gateway_appliance"
+
+# Do NOT put "set -e" here!
+
+# ABEND if pm2 is not installed.
+if [ ! -x /usr/bin/pm2 ]; then
+    echo "PM2 not installed." >&2
+    exit 1
+fi
+
+# Read configuration variable file if one exists.  Note that this can
+# potentially change the values of variables defined earlier in this script.
+[ -r /etc/default/$INIT_SCRIPT_NAME ] && . /etc/default/$INIT_SCRIPT_NAME
+
+# Load the other rcS variables.
+. /lib/init/vars.sh
+
+# Pull in the LSB log_* functions, chief among them log_daemon_msg(), which is
+# used to print stuff to the screen.
+. /lib/lsb/init-functions
+
+# Core code.
+case "$1" in
+    start)
+        echo "Starting Ripple RESTful API server... "
+        cd $DAEMON_DIR
+        /usr/bin/pm2 start --verbose -o $LOG -e $ERROR -p $PIDFILE \
+            -u $NODEUSER $DAEMON
+        ;;
+
+    stop)
+        echo "Stopping Ripple RESTful API server... "
+        cd $DAEMON_DIR
+        /usr/bin/pm2 stop $DAEMON
+        ;;
+
+    restart)
+        echo "Restarting $NAME..."
+        cd $DAEMON_DIR
+        /usr/bin/pm2 restart $DAEMON
+        ;;
+
+    upgrade)
+        if [ `id -u` -gt 0 ]; then
+            echo "You must be root to update the $NAME codebase. ABENDing."
+            exit 1
+        fi
+
+        echo "Updating $NAME to latest version. Press enter to continue or ^C to abort."
+        read pause
+
+        # Trap a couple of signals to keep things from getting messed up.
+        trap '' 2 # SIGINT
+        trap '' 9 # SIGKILL
+        trap '' 20 # SIGTSTP
+
+        echo "Stopping $NAME."
+        umask 0022
+        cd $DAEMON_DIR
+        /usr/bin/pm2 stop $DAEMON
+
+        echo "Updating code repository."
+        git pull
+
+        echo "Updating NPM modules."
+        npm install
+
+        echo "Updating database schemas."
+        /opt/ripple-rest/node_modules/grunt-cli/bin/grunt \
+            --gruntfile /opt/ripple-rest/Gruntfile.js dbsetup
+        
+        echo "Starting $NAME."
+        /usr/bin/pm2 start --verbose -o $LOG -e $ERROR -p $PIDFILE \
+            -u $NODEUSER $DAEMON
+
+        # Re-enable trapped signals.
+        trap 2
+        trap 9
+        trap 20
+        ;;
+
+    status)
+        /usr/bin/pm2 list
+        ;;
+    *)
+        echo "Usage: $0 {start|stop|restart|status|upgrade}" >&2
+        exit 3
+        ;;
+esac
+
+# Fin.
+exit 0
